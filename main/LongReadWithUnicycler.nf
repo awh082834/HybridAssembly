@@ -7,15 +7,17 @@ nextflow.enable.dsl=2
 
 //input params
 params.out
-//params.in
 params.sample
+//true or false
+params.isolate
 
 println """\
-         L O N G  R E A D  A N A L Y S I S
-         =================================
-         Input Directory   :
-         Output Directory  : ${params.out   }
-         Sample Name or ID : ${params.sample}
+         H Y B R I D  A S S E M B L Y  W I T H  U N I C Y C L E R
+         ========================================================
+         Output Directory    : ${params.out   }
+         Sample Name or ID   : ${params.sample}
+         Isolate non 
+          chromosomal contigs: ${params.isolate}
          """
          .stripIndent()
 //Channels
@@ -41,6 +43,9 @@ workflow{
 
   //assembly
   uniCyclerAssembly(trimSR.out.srTrimmed.combine(filtLong.out.filtered))
+
+  //IsolateContigs
+  pullCircularizedContigs(uniCyclerAssembly.out.assembly)
 
   //AssemblyQC
   AssemblyQC(uniCyclerAssembly.out.assembly)
@@ -150,11 +155,11 @@ process uniCyclerAssembly{
 
   output:
   path("*")
-  path("assembly.fasta"), emit: assembly
+  path("${params.sample}_Assembly/assembly.fasta"), emit: assembly
 
   script:
   """
-  unicycler -1 ${reads[0]} -2 ${reads[1]} -l ${reads[2]} -o ${params.sample}
+  unicycler -1 ${reads[0]} -2 ${reads[1]} -l ${reads[2]} -o ${params.sample}_Assembly
   """
 }
 
@@ -174,4 +179,25 @@ process AssemblyQC{
   """
   quast.py -o quastOut ${assembly}
   """
+}
+
+process pullCircularizedContigs{
+  tag{"Isolate Circularized Contigs"}
+
+  publishDir("${params.out}", mode: 'copy')
+
+  input:
+  path{assembly}
+
+  output:
+  path("*.fasta")
+
+  when:
+  params.isolate == "true"
+
+  script:
+  """
+  python ./bin/IsolateContigs.py ${assembly}
+  """
+
 }
