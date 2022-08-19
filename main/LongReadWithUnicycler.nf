@@ -15,10 +15,9 @@ params.isolate
 println """\
          H Y B R I D  A S S E M B L Y  W I T H  U N I C Y C L E R
          ========================================================
-         Output Directory    : ${params.out   }
-         Sample Name or ID   : ${params.sample}
-         Isolate non 
-          chromosomal contigs: ${params.isolate}
+         Output Directory               : ${params.out    }
+         Sample Name or ID              : ${params.sample }
+         Isolate non chromosomal contigs: ${params.isolate}
          """
          .stripIndent()
 //Channels
