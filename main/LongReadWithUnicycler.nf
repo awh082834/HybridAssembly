@@ -11,6 +11,7 @@ params.sample
 //true or false
 params.isolate
 
+
 println """\
          H Y B R I D  A S S E M B L Y  W I T H  U N I C Y C L E R
          ========================================================
@@ -23,7 +24,6 @@ println """\
 //Channels
 lr_ch = Channel.fromPath("*_long.fastq.gz", checkIfExists: true)
 sr_ch = Channel.fromFilePairs("*{_1,_2,_R1,_R2}_001.{fastq,fq}.gz", checkIfExists: true)
-sr_ch.view()
 
 workflow{
   //precprocess and concatenate fastqs
@@ -187,17 +187,43 @@ process pullCircularizedContigs{
   publishDir("${params.out}", mode: 'copy')
 
   input:
-  path{assembly}
+  path(assembly)
 
   output:
   path("*.fasta")
 
   when:
-  params.isolate == "true"
+  params.isolate = "true"
 
   script:
   """
-  python ./bin/IsolateContigs.py ${assembly}
-  """
+  #!/usr/bin/python
 
+  import sys
+  import os.path
+  #Assembly Filename
+  assemFile = "${assembly}"
+  #Name of output file
+  outfileName = "IsolatedContigs.fasta"
+  headerFound = False
+  secondHeaderFound = False
+  try:
+      with open(assemFile, 'r') as infile:
+          lines = infile.readlines()
+          #If the user wants all contigs other than the first, presumably
+          #chromosomal contig, this flag will grab all of them and 
+          #add them to a new file.
+          for line in lines:
+              if secondHeaderFound:
+                  outfile.write(line)
+              #Looks for the second contig as that is the second
+              #smallest, excluding the largest, the chromosomal contig
+              if ">2" in line:
+                  secondHeaderFound = True
+                  outfile = open(outfileName, 'a')
+                  outfile.write(line)
+
+  except:
+      print("Assembly file does not exist.")
+  """
 }
